@@ -54,7 +54,7 @@ entity hamming is port(
 	dados : out bit_vector(23 downto 0);
 	erro: out bit 
 	);
-end entity;
+end hamming;
 
 architecture hamming_arch of hamming is 
 	-- declaracoes 
@@ -81,7 +81,7 @@ begin
             entrada_i(17) xor entrada_i(18) xor entrada_i(21) xor entrada_i(22) xor 
             entrada_i(25) xor entrada_i(26); 
             
-    p2_e <= entrada_i(5) xor entrada_i(5) xor entrada_i(6) xor 
+    p2_e <= entrada_i(4) xor entrada_i(5) xor entrada_i(6) xor 
     		entrada_i(11) xor entrada_i(12) xor entrada_i(13) xor entrada_i(14) xor
             entrada_i(19) xor entrada_i(20) xor entrada_i(21) xor entrada_i(22) xor 
             entrada_i(27) xor entrada_i(28);
@@ -132,6 +132,5 @@ begin
     		'0';
 
 end hamming_arch;
-
 
 
