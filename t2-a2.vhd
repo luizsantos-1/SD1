@@ -1,63 +1,120 @@
 library IEEE;
-use IEEE.numeric_bit.all;
+use IEEE.numeric_bit.all; -- Supports signed and unsigned arithmetic
 
-entity purrinha is 
-	port (
-    num4, num3, num2, num1: in bit_vector(1 downto 0); 
-	guess4, guess3, guess2, guess1: in bit_vector(3 downto 0); 
-    display: out bit_vector(6 downto 0)
-    );
+-- Half adder with 4 bits 
+entity hadder4bits is
+port(
+  a:     in  bit_vector (3 downto 0);
+  b:     in  bit_vector (3 downto 0);
+  sum:   out bit_vector (3 downto 0));
+end hadder4bits;
+
+architecture hadder_arch of hadder4bits is
+  signal internal : unsigned (3 downto 0);
+begin
+  internal <= unsigned(a) + unsigned(b);
+  sum <= bit_vector(internal); -- soma com 4 bits
+end hadder_arch;
+
+-- Comparator with 4 bits
+entity comp4bits is
+port(
+  a:        in  bit_vector (3 downto 0);
+  b:        in  bit_vector (3 downto 0);
+  equals:   out bit);
+end comp4bits;
+
+architecture comp4bits_arch of comp4bits is
+begin
+  equals <= '1' when (a = b) else '0'; -- soma com 4 bits
+end comp4bits_arch;
+
+-- Binary encoder 4:2 bits, plus error bit (most significant)
+entity enc4_2err is
+port(
+  data   : in  bit_vector (3 downto 0);
+  encoded: out bit_vector (2 downto 0));
+end enc4_2err;
+
+architecture enc4_2_arch of enc4_2err is
+begin
+  encoded <= "000" when data = "0001" else
+  			 "001" when data = "0010" else 
+             "010" when data = "0100" else 
+             "011" when data = "1000" else 
+             "100" when data = "0000" else -- error: no bit set to 1
+             "111"; 					   -- error: more than one bit set to 1
+end enc4_2_arch;
+
+
+--Complete game
+entity purrinha is
+  port (
+    num4, num3, num2, num1: 		in  bit_vector(1 downto 0);
+    guess4, guess3, guess2, guess1: in  bit_vector(3 downto 0);
+    display: 						out bit_vector(6 downto 0));
 end entity;
 
-architecture purrinha_arch of purrinha is 
-	-- declaracoes 
-    -- declarar soma
-    signal soma1: bit_vector(3 downto 0);
-    signal soma2: bit_vector(3 downto 0);
-    signal somaf: bit_vector(3 downto 0);
-    signal resultado: bit_vector (3 downto 0);
-    signal repeticao: bit;
-begin 
-	soma1 <= unsigned("00" & num1) + unsigned("00" & num2);
-    soma2 <= unsigned("00" & num3) + unsigned("00" & num4);
-    somaf <= unsigned(soma1) + unsigned(soma2); 
-    
-    -- zero é errado
-    resultado(0) <= not ((somaf(0) xor guess1(0)) or 
-    					(somaf(1) xor guess1(1)) or 
-    					(somaf(2) xor guess1(2)) or 
-                        (somaf(3) xor guess1(3)));
-    resultado(1) <= not ((somaf(0) xor guess2(0)) or 
-    					(somaf(1) xor guess2(1)) or 
-    					(somaf(2) xor guess2(2)) or 
-                        (somaf(3) xor guess2(3)));
-    resultado(2) <= not ((somaf(0) xor guess3(0)) or 
-    					(somaf(1) xor guess3(1)) or 
-    					(somaf(2) xor guess3(2)) or 
-                        (somaf(3) xor guess3(3)));
-    resultado(3) <= not ((somaf(0) xor guess4(0)) or 
-    					(somaf(1) xor guess4(1)) or 
-                        (somaf(2) xor guess4(2)) or 
-                        (somaf(3) xor guess4(3)));
 
-    repeticao <= (resultado(0) and resultado(1)) or
-    			 (resultado(0) and resultado(2)) or
-                 (resultado(0) and resultado(3)) or
-    			 (resultado(1) and resultado(2)) or
-                 (resultado(1) and resultado(3)) or
-    			 (resultado(2) and resultado(3));
+architecture arch of purrinha is
+	-- Inputs from players extended to 4 bits
+    signal num4_4bits, num3_4bits, num2_4bits, num1_4bits: bit_vector(3 downto 0);
+    -- Sums 
+    signal sum43, sum21, sumAll: bit_vector(3 downto 0);
+    -- Result of guesses 
+    signal correct: bit_vector(3 downto 0);
+    -- Internal encoding
+    signal encodedWinner:  bit_vector(2 downto 0);
+    
+    component hadder4bits is
+		port( 	a:     in  bit_vector (3 downto 0);
+  				b:     in  bit_vector (3 downto 0);
+  				sum:   out bit_vector (3 downto 0));
+	end component;
+    
+    component comp4bits is
+		port(	a:      in  bit_vector (3 downto 0);
+  				b:      in  bit_vector (3 downto 0);
+  				equals: out bit);
+	end component;
+    
+    component enc4_2err is
+		port(	data   : in  bit_vector (3 downto 0);
+  				encoded: out bit_vector (2 downto 0));
+	end component;
+    
+begin
+  	num4_4bits <= "00" & num4;
+    num3_4bits <= "00" & num3;
+    num2_4bits <= "00" & num2;
+    num1_4bits <= "00" & num1;
+    
+    -- Additions
+    adder43: hadder4bits port map (num4_4bits, num3_4bits, sum43);
+    adder21: hadder4bits port map (num2_4bits, num1_4bits, sum21);
+    
+    adderall: hadder4bits port map (sum43, sum21, sumAll);
+    
+    -- Comparators: results vs guesses 
+    win4: comp4bits port map (sumAll, guess4, correct(3));
+    win3: comp4bits port map (sumAll, guess3, correct(2));
+    win2: comp4bits port map (sumAll, guess2, correct(1));
+    win1: comp4bits port map (sumAll, guess1, correct(0));
     
     
+    -- Get encoded winner number
+    callWinner: enc4_2err port map (correct, encodedWinner);
     
-	display <= "1001111" when (repeticao = '1') else
-    		   "0110000" when (resultado(0) = '1') else
-    		   "1101101" when (resultado(1) = '1') else
-               "1111001" when (resultado(2) = '1') else
-               "0110011" when (resultado(3) = '1') else
-               "0000001"; -- ninguem acertou
-              
-    			
-end purrinha_arch;
+    -- Decode winner in 7-seg display
+    with encodedWinner select
+    	display <= 	"0110000" when "000",  -- player 1 wins
+        			"1101101" when "001",  -- player 2 wins
+                    "1111001" when "010",  -- player 3 wins
+                    "0110011" when "011",  -- player 4 wins
+                    "0000001" when "100",  -- no winner: "-"
+					"1001111" when others; -- error: "E"
+        
+end architecture;
 
 entity flipflopd is port(
   D, reset, clock, EN: in bit;
@@ -90,11 +147,11 @@ entity purrinha_plus is port(
   );
 end purrinha_plus;
 
-architecture purrinha_plus_arch of flipflopd is 
+architecture purrinha_plus_arch of purrinha_plus is 
 	
     signal num1_guardado, num2_guardado, num3_guardado, num4_guardado: bit_vector(1 downto 0);
     signal guess1_guardado, guess2_guardado, guess3_guardado, guess4_guardado: bit_vector(3 downto 0);
-    signal display_i: bit_vector(6 downto0);
+    signal display_i: bit_vector(6 downto 0);
     
     component purrinha is port (
     num4, num3, num2, num1: in bit_vector(1 downto 0); 
@@ -153,5 +210,5 @@ architecture purrinha_plus_arch of flipflopd is
     ff_display4: flipflopd port map (display_i(4), reset, clock, atualiza, display(4));
     ff_display5: flipflopd port map (display_i(5), reset, clock, atualiza, display(5));
     ff_display6: flipflopd port map (display_i(6), reset, clock, atualiza, display(6));
-  	
+  		
 end purrinha_plus_arch;
