@@ -210,5 +210,5 @@ architecture purrinha_plus_arch of purrinha_plus is
     ff_display4: flipflopd port map (display_i(4), reset, clock, atualiza, display(4));
     ff_display5: flipflopd port map (display_i(5), reset, clock, atualiza, display(5));
     ff_display6: flipflopd port map (display_i(6), reset, clock, atualiza, display(6));
-  		
+  	
 end purrinha_plus_arch;
