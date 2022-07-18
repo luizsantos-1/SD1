@@ -102,7 +102,6 @@ architecture registrador_arch of registrador is
 end registrador_arch;
 
 
-
 entity fib is port(
 	reset, clock, inicio: in bit;
 	F1, F2, n: in bit_vector(7 downto 0); 
@@ -111,5 +110,45 @@ entity fib is port(
 end fib;
 
 architecture fib_arch of fib is 
-	
+
+    begin 
+    
 end fib_arch;
+
+entity fibUC is
+  port (
+    clock, reset, inicio : in bit;
+    fim: out bit
+  );
+end entity;
+
+architecture fibUC_arch of fibUC is
+  type state_t is (idle_s, exibirf1_s, exibirf2_s, somar_s, fim,_s);
+  signal next_state, current_state: state_t;
+begin
+
+  -- Processo da máquina de estados
+  fsm: process(clock, reset)
+  begin
+    if reset='1' then
+      current_state <= idle_s;
+    elsif rising_edge(clock) then
+      current_state <= next_state;
+    end if;
+  end process;
+
+  -- Lógica de próximo estado
+  next_state <=
+    idle_s  when (reset = '1') or (current_state = idle_s and inicio = '0')else
+	exibir_f1_s when (current_state = idle_s) and (inicio = '1') else
+	exibir_f2_s when (current_state = exibir_f1_s) else
+	somar_s when (current_state = exibir_f2_s) or  (current_state = somar_s and (overflow = '0' and contador /= '0')) else
+	fim_s when (contador = '0' or overflow = '1');
+	  
+  -- Decodifica o estado para gerar sinais de controle
+  contador <= 'n' when current_state = idle_s else '0';
+  
+  -- Decodifica o estado para gerar as saídas da UC
+  fim <= '1' when current_state= fim_s else '0';
+
+end architecture;
