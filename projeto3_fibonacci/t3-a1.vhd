@@ -1,13 +1,6 @@
 library IEEE;
 use IEEE.numeric_bit.all;
 
-entity fib is port(
-	reset, clock, inicio: in bit;
-	F1, F2, n: in bit_vector(7 downto 0); 
-	Fn: out bit_vector(15 downto 0);
-	fim, overflow: out bit); 
-end fib;
-
 entity somador_16 is port(
   	entrada1, entrada2: in bit_vector(15 downto 0); 
 	saida: out bit_vector(15 downto 0);
@@ -58,3 +51,65 @@ architecture somador_16_arch of somador_16 is
     overflow <= carry_out_vec(15);
     
 end somador_16_arch;
+
+entity flipflopd is port(
+	D, reset, clock, EN: in bit;
+	Q: out bit );
+end flipflopd;
+
+architecture behavior of flipflopd is begin
+	process (reset, clock) 
+    	begin
+		if reset=’0’ then Q <= ’0’;
+		elsif clock’EVENT and clock=’1’ and EN=’1’ then Q <= D;
+		end if;
+	end process ;
+end behavior;
+
+entity registrador is port(
+	reset, clock, EN: in bit;
+    D: in bit vector(15 downto 0);
+    Q: out bit vector(15 downto 0));
+end registrador;
+architecture registrador_arch of registrador is 
+	
+    component flipflopd is port (
+		D, reset, clock, EN: in bit;
+		Q: out bit );
+    end component;
+    
+    begin
+    
+    FF0: flipflopd port map (D(0), reset, clock, EN, Q(0));
+    FF1: flipflopd port map (D(1), reset, clock, EN, Q(1));
+    FF2: flipflopd port map (D(2), reset, clock, EN, Q(2));
+    FF3: flipflopd port map (D(3), reset, clock, EN, Q(3));
+    FF4: flipflopd port map (D(4), reset, clock, EN, Q(4));
+    FF5: flipflopd port map (D(5), reset, clock, EN, Q(5));
+    FF6: flipflopd port map (D(6), reset, clock, EN, Q(6));
+    FF7: flipflopd port map (D(7), reset, clock, EN, Q(7));
+    FF8: flipflopd port map (D(8), reset, clock, EN, Q(8));
+    FF9: flipflopd port map (D(9), reset, clock, EN, Q(9));
+    FF10: flipflopd port map (D(10), reset, clock, EN, Q(10));
+    FF11: flipflopd port map (D(11), reset, clock, EN, Q(11));
+    FF12: flipflopd port map (D(12), reset, clock, EN, Q(12));
+    FF13: flipflopd port map (D(13), reset, clock, EN, Q(13));
+    FF14: flipflopd port map (D(14), reset, clock, EN, Q(14));
+    FF15: flipflopd port map (D(15), reset, clock, EN, Q(15));
+    
+    
+    
+end registrador_arch;
+
+
+
+entity fib is port(
+	reset, clock, inicio: in bit;
+	F1, F2, n: in bit_vector(7 downto 0); 
+	Fn: out bit_vector(15 downto 0);
+	fim, overflow: out bit); 
+end fib;
+
+architecture fib_arch of fib is 
+	
+end fib_arch;
