@@ -1,1 +1,1 @@
-# purrinha_plus
+# Esse repositório contém os trabalhos individuais da disciplina de Sistemas Digitais I ministrada na Escola Politécnica em 2022
