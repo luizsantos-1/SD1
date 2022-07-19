@@ -1,13 +1,7 @@
 library IEEE;
 use IEEE.numeric_bit.all;
 
-
-entity somador_16 is port(
-  	entrada1, entrada2: in bit_vector(15 downto 0); 
-	saida: out bit_vector(15 downto 0);
-	overflow: out bit); 
-end somador_16;
-
+-- SOMADOR
 entity somador_1 is port(
   	A, B, carry_in: in bit ; 
 	carry_out, S: out bit); 
@@ -20,6 +14,12 @@ architecture somador_1_arch of somador_1 is
         carry_out <= ((A xor B) and carry_in) or (A and B); 
 
 end somador_1_arch;
+
+entity somador_16 is port(
+  	entrada1, entrada2: in bit_vector(15 downto 0); 
+	saida: out bit_vector(15 downto 0);
+	overflow: out bit); 
+end somador_16;
 
 architecture somador_16_arch of somador_16 is 
 
@@ -53,6 +53,7 @@ architecture somador_16_arch of somador_16 is
     
 end somador_16_arch;
 
+-- FLIPFLOP
 entity flipflopd is port(
 	D, reset, clock, EN: in bit;
 	Q: out bit );
@@ -61,12 +62,14 @@ end flipflopd;
 architecture behavior of flipflopd is begin
 	process (reset, clock) 
     	begin
-		if reset='0' then Q <= '0';
+		if reset='1' then Q <= '0';
 		elsif clock'EVENT and clock='1' and EN='1' then Q <= D;
 		end if;
 	end process ;
 end behavior;
 
+
+-- REGISTRADOR
 entity registrador is port(
 	reset, clock, EN: in bit;
     D: in bit_vector(15 downto 0);
@@ -98,10 +101,38 @@ architecture registrador_arch of registrador is
     FF14: flipflopd port map (D(14), reset, clock, EN, Q(14));
     FF15: flipflopd port map (D(15), reset, clock, EN, Q(15));
     
-    
-    
 end registrador_arch;
 
+-- CONTADOR
+library IEEE;
+use IEEE.numeric_bit.all;
+
+entity counter8 is
+  port (
+    clock: 	in bit;
+	  set: 	in bit;		-- set síncrono
+    set_value: in bit_vector (7 downto 0);
+	  count: 	in bit;		-- habilita contagem
+	  cval: 	out bit_vector(7 downto 0)
+    );
+end entity;
+
+architecture counter8_arch of counter8 is
+  signal internal: unsigned(7 downto 0);
+begin
+  process(clock)
+  begin
+    if set='1' then
+        internal <= unsigned(set_value);
+    end if;
+
+    if (rising_edge(clock) and count = '1') then
+        internal <= internal - 1;
+    end if;
+  end process;
+  cval <= bit_vector(internal);
+  
+end architecture;
 
 entity fib is port(
 	reset, clock, inicio: in bit;
@@ -112,8 +143,48 @@ end fib;
 
 architecture fib_arch of fib is 
 
-    begin 
+  component fibUC is port (                   
+    overflow, done: in bit; -- recebe do fluxo de dados
+    clock, reset, inicio: in bit; --recebe do exterior
+    f1_no_Fn, f2_no_Fn, enable_soma: out bit; -- manda pro FD
+    fim: out bit -- manda para o exterior
+    );
+  end component;
     
+  component fibFD is port(
+    clock: in bit; -- recebe do exterior
+    n: in bit_vector (7 downto 0); -- recebe do exterior
+    F1, F2: in bit_vector(15 downto 0); -- recebe do exterior
+    reset: in bit; -- recebe do exterior
+    f1_no_Fn, f2_no_Fn, enable_soma: in bit;--recebe da UC
+    Fn: out bit_vector(15 downto 0); -- manda para o exterior
+    overflow: out bit; -- manda para a UC e para o exterior
+    done: out bit -- manda para UC
+    );
+  end component;
+
+  signal done_t: bit;-- UC recebe do FD
+  signal overflow_t: bit; --sinal intermediario que sai da FD e é mandado para UC e pro exterior
+  signal f1_no_Fn_t, f2_no_Fn_t, enable_soma_t: bit; -- FD recece da UC 
+
+  signal F1_G, F2_G: bit_vector(15 downto 0);
+
+  begin 
+
+  UnidadeDeControle: fibUC port map(overflow_t, done_t, clock, reset, inicio, 
+                                    f1_no_Fn_t, f2_no_Fn_t, enable_soma_t, fim);
+
+  F1_G(15 downto 8) <= "00000000";
+  F1_G(7 downto 0) <=  F1; 
+
+  F2_G(15 downto 8) <= "00000000";
+  F2_G(7 downto 0) <=  F2; 
+
+  FluxoDeDados: fibFD port map (clock, n, F1_G, F2_G, reset, f1_no_Fn_t, f2_no_Fn_t,
+                                enable_soma_t, Fn, overflow_t, done_t);
+    
+  overflow <= overflow_t;
+
 end fib_arch;
 
 library IEEE;
@@ -145,20 +216,19 @@ begin
   -- Lógica de próximo estado
   next_state <=
     idle_s  when (reset = '1') or (current_state = idle_s and inicio = '0') else
-	exibirf1_s when (current_state = idle_s) and (inicio = '1') else
-	exibirf2_s when (current_state = exibirf1_s) else
-	somar_s when (current_state = exibirf2_s) or  (current_state = somar_s and (overflow = '0' and done = '0')) else
-	fim_s;
+	  exibirf1_s when (current_state = idle_s) and (inicio = '1') else
+	  exibirf2_s when (current_state = exibirf1_s) else
+	  somar_s when (current_state = exibirf2_s) or  (current_state = somar_s and (overflow = '0' and done = '0')) else
+	  fim_s;
 	  
   -- Decodifica o estado para gerar sinais de controle
-  reset_contador <= '1' when (current_state = idle_s and reset = '1') else '0'; 
   f1_no_Fn <= '1' when current_state = exibirf1_s else '0';
   f2_no_Fn <= '1' when current_state = exibirf2_s else '0';
   enable_soma <= '1' when current_state = somar_s else '0';
 
 
   -- Decodifica o estado para gerar as saídas da UC
-  fim <= '1' when current_state= fim_s else '0';
+  fim <= '1' when current_state = fim_s else '0';
 
 
 end fibUC_arch;
@@ -167,10 +237,13 @@ entity fibFD is port(
     clock: in bit; -- recebe do exterior
     n: in bit_vector (7 downto 0); -- recebe do exterior
     F1, F2: in bit_vector(15 downto 0); -- recebe do exterior
-    reset_contador, f1_no_Fn, f2_no_Fn, enable_soma: in bit;--recebe da UC
+    reset: in bit; -- recebe do exterior
+    f1_no_Fn, f2_no_Fn, enable_soma: in bit;--recebe da UC
     Fn: out bit_vector(15 downto 0); -- manda para o exterior
-    overflow, done: out bit -- manda para UC
+    overflow: out bit;
+    done: out bit -- manda para UC
 );
+
 end entity;
 
 architecture fibFD_arch of fibFD is
@@ -204,14 +277,17 @@ architecture fibFD_arch of fibFD is
     signal out_somador: bit_vector(15 downto 0);
     signal out_contador: bit_vector(7 downto 0);
     
+    signal contar: bit;
+    
 begin
+    contar <= enable_soma or f1_no_Fn or f1_no_Fn;
 
-    contador: counter8 port map(clock, reset_contador, n, enable_soma, out_contador);
+    contador: counter8 port map(clock, reset, n, contar, out_contador);
 
-    in_f1 <= F1 when (reset_contador = '1') else
+    in_f1 <= F1 when (reset = '1') else
              out_somador;
 
-    in_f2 <= F2 when (reset_contador = '1') else
+    in_f2 <= F2 when (reset = '1') else
              out_f1;
 
     Fn <= F1 when (f1_no_Fn  = '1') else
@@ -222,42 +298,15 @@ begin
             '0';
 
     
-    reg1: registrador port map (reset_contador, clock, '1', in_f1, out_f1);
-    reg2: registrador port map (reset_contador, clock, '1', in_f2 , out_f2);
+    reg1: registrador port map (reset, clock, '1', in_f1, out_f1);
+    reg2: registrador port map (reset, clock, '1', in_f2 , out_f2);
 
     somador: somador_16 port map(out_f1, out_f2, out_somador, overflow);
 
 end fibFD_arch;
 
-library IEEE;
-use IEEE.numeric_bit.all;
 
-entity counter8 is
-  port (
-    clock: 	in bit;
-	set: 	in bit;		-- set síncrono
-    set_value: in bit_vector (7 downto 0);
-	count: 	in bit;		-- habilita contagem
-	cval: 	out bit_vector(7 downto 0)
-  );
-end entity;
 
-architecture counter8_arch of counter8 is
-  signal internal: unsigned(7 downto 0);
-begin
-  process(clock)
-  begin
-    if set='1' then
-        internal <= unsigned(set_value);
-    end if;
-
-    if (rising_edge(clock) and count = '1') then
-        internal <= internal - 1;
-    end if;
-  end process;
-  cval <= bit_vector(internal);
-  
-end architecture;
 
 
 
