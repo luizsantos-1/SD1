@@ -193,7 +193,7 @@ use IEEE.numeric_bit.all;
 entity fibUC is port (                   
     overflow, done: in bit; -- recebe do fluxo de dados
     clock, reset, inicio: in bit; --recebe do exterior
-    reset_contador, f1_no_Fn, f2_no_Fn, enable_soma: out bit; -- manda pro FD
+    f1_no_Fn, f2_no_Fn, enable_soma: out bit; -- manda pro FD
     fim: out bit -- manda para o exterior
   );
 end entity;
