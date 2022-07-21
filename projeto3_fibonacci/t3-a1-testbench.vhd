@@ -11,22 +11,17 @@ end testbench;
 architecture tb of testbench is
 
 -- DUT component
-component fibFD is port(
-    clock: in bit; -- recebe do exterior
-    n: in bit_vector (7 downto 0); -- recebe do exterior
-    F1, F2: in bit_vector(15 downto 0); -- recebe do exterior
-    idle, f1_no_Fn, f2_no_Fn, enable_soma: in bit;--recebe da UC
-    Fn: out bit_vector(15 downto 0); -- manda para o exterior
-    overflow: out bit;
-    done: out bit -- manda para UC
-);
-
+component fib is port(
+	reset, clock, inicio: in bit;
+	F1, F2, n: in bit_vector(7 downto 0); 
+	Fn: out bit_vector(15 downto 0);
+	fim, overflow: out bit); 
 end component;
 
-signal idle_in, f1_no_Fn_in, f2_no_Fn_in, enable_soma_in: bit;
-signal n_in : bit_vector(7 downto 0);
-signal F1_in, F2_in, Fn_out: bit_vector(15 downto 0);
-signal done_out, overflow_out: bit;
+signal reset_in, inicio_in: bit;
+signal F1_in, F2_in, n_in: bit_vector(7 downto 0);
+signal Fn_out: bit_vector(15 downto 0);
+signal fim_out, overflow_out: bit;
 
 
 -- Criando o clock
@@ -39,7 +34,7 @@ begin
     
 
   -- Connect DUT
-FluxoDeDados: fibFD port map (clk_in, n_in, F1_in, F2_in, idle_in, f1_no_Fn_in, f2_no_Fn_in, enable_soma_in, Fn_out, overflow_out, done_out);
+fibo: fib port map (reset_in, clk_in, inicio_in, F1_in, F2_in, n_in,Fn_out, fim_out, overflow_out);
 
   process
   begin
@@ -49,61 +44,21 @@ FluxoDeDados: fibFD port map (clk_in, n_in, F1_in, F2_in, idle_in, f1_no_Fn_in, 
     
     --wait for 2 ns;
    	
-    n_in <= "11111111";
-    F1_in <= "0000000000000001";
-    F2_in <= "0000000000000010";
-   	idle_in <= '1';
-    f1_no_Fn_in <= '0';
-    f2_no_Fn_in <= '0';
-    enable_soma_in <= '0';
+    reset_in <= '1';
+    inicio_in <= '0';
+    n_in <= "00000100";
+    F1_in <= "00000001";
+    F2_in <= "00000010";
     
-    wait for 2 ns; -- espera estabilizar e verifica saída 
+    wait for 4 ns; -- espera estabilizar e verifica saída 
     
-    idle_in <= '0';
-    f1_no_Fn_in <= '1';
-    f2_no_Fn_in <= '0';
-    enable_soma_in <= '0';
-    
+    reset_in <= '0';
+    inicio_in <= '1';
     wait for 2 ns;
+    inicio_in <= '0'; 
     
-    assert(Fn_out ="0000000000000001") report "Fail 0+0" severity error;
-    
-    idle_in <= '0';
-    f1_no_Fn_in <= '0';
-    f2_no_Fn_in <= '1';
-    enable_soma_in <= '0';
-    
-    wait for 2 ns;
-    
-    assert(Fn_out ="0000000000000010") report "Fail 0+0" severity error;
-    
-    idle_in <= '0';
-    f1_no_Fn_in <= '0';
-    f2_no_Fn_in <= '0';
-    enable_soma_in <= '1';
-    
-    wait for 2 ns;
-    
-    assert(Fn_out ="0000000000000011") report "Fail 0+0" severity error;
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    --wait for 2 ns; -- espera estabilizar e verifica saída
-    --assert(Fn_out ="0000000000000000") report "Fail 0+0" severity error;
-    
-    --wait for 2 ns; -- espera estabilizar e verifica saída
-    --assert(Fn_out ="0000000000000000") report "Fail 0+0" severity error;
-    
-    
-    -- Limpa entradas (opcional)
-    
+    wait for 10 ns;
+  
 
     -- Informa fim do teste
     assert false report "Test done." severity note;
