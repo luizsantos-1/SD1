@@ -1,3 +1,9 @@
+-- Code your testbench here
+--library IEEE;
+--use IEEE.std_logic_1164.all;
+-- Testbench for adder4bits
+
+ 
 entity testbench is
 -- empty
 end testbench; 
@@ -5,18 +11,22 @@ end testbench;
 architecture tb of testbench is
 
 -- DUT component
-component counter8 is
-  port (
-    clock: 	in bit;
-	  set: 	in bit;		-- set síncrono
-    set_value: in bit_vector (7 downto 0);
-	  count: 	in bit;		-- habilita contagem
-	  cval: 	out bit_vector(7 downto 0)
-    );
+component fibFD is port(
+    clock: in bit; -- recebe do exterior
+    n: in bit_vector (7 downto 0); -- recebe do exterior
+    F1, F2: in bit_vector(15 downto 0); -- recebe do exterior
+    idle, f1_no_Fn, f2_no_Fn, enable_soma: in bit;--recebe da UC
+    Fn: out bit_vector(15 downto 0); -- manda para o exterior
+    overflow: out bit;
+    done: out bit -- manda para UC
+);
+
 end component;
 
-signal set_in, count_in: bit;
-signal set_value_in, cval_out: bit_vector(7 downto 0);
+signal idle_in, f1_no_Fn_in, f2_no_Fn_in, enable_soma_in: bit;
+signal n_in : bit_vector(7 downto 0);
+signal F1_in, F2_in, Fn_out: bit_vector(15 downto 0);
+signal done_out, overflow_out: bit;
 
 
 -- Criando o clock
@@ -29,7 +39,7 @@ begin
     
 
   -- Connect DUT
-	DUT: counter8 port map(clk_in, set_in, set_value_in, count_in, cval_out);
+FluxoDeDados: fibFD port map (clk_in, n_in, F1_in, F2_in, idle_in, f1_no_Fn_in, f2_no_Fn_in, enable_soma_in, Fn_out, overflow_out, done_out);
 
   process
   begin
@@ -38,23 +48,24 @@ begin
     keep_simulating <= '1';
     
     --wait for 2 ns;
+   	
+    n_in <= "11111111";
+    F1_in <= "1111111100000000";
+    F2_in <= "0000000011111111";
+   	idle_in <= '1';
+    f1_no_Fn_in <= '0';
+    f2_no_Fn_in <= '0';
+    enable_soma_in <= '0';
     
-	set_in <= '1';
-    set_value_in <= "11111111";
-    count_in  <= '0';
+    wait for 4 ns; -- espera estabilizar e verifica saída   
     
-    wait for 2 ns; -- espera estabilizar e verifica saída
-    set_in <= '0';
+    assert(Fn_out ="1111111100000000") report "Fail 0+0" severity error;
     
+    --wait for 2 ns; -- espera estabilizar e verifica saída
+    --assert(Fn_out ="0000000000000000") report "Fail 0+0" severity error;
     
-    assert(cval_out ="11111111") report "Fail 0+0" severity error;
-
-	count_in <= '1';
-    wait for 2 ns; -- espera estabilizar e verifica saída
-    assert(cval_out ="11111110") report "Fail 0+0" severity error;
-    
-    wait for 2 ns; -- espera estabilizar e verifica saída
-    assert(cval_out ="11111101") report "Fail 0+0" severity error;
+    --wait for 2 ns; -- espera estabilizar e verifica saída
+    --assert(Fn_out ="0000000000000000") report "Fail 0+0" severity error;
     
     
     -- Limpa entradas (opcional)
