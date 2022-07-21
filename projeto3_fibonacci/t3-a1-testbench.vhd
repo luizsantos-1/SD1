@@ -50,16 +50,50 @@ FluxoDeDados: fibFD port map (clk_in, n_in, F1_in, F2_in, idle_in, f1_no_Fn_in, 
     --wait for 2 ns;
    	
     n_in <= "11111111";
-    F1_in <= "1111111100000000";
-    F2_in <= "0000000011111111";
+    F1_in <= "0000000000000001";
+    F2_in <= "0000000000000010";
    	idle_in <= '1';
     f1_no_Fn_in <= '0';
     f2_no_Fn_in <= '0';
     enable_soma_in <= '0';
     
-    wait for 4 ns; -- espera estabilizar e verifica saída   
+    wait for 2 ns; -- espera estabilizar e verifica saída 
     
-    assert(Fn_out ="1111111100000000") report "Fail 0+0" severity error;
+    idle_in <= '0';
+    f1_no_Fn_in <= '1';
+    f2_no_Fn_in <= '0';
+    enable_soma_in <= '0';
+    
+    wait for 2 ns;
+    
+    assert(Fn_out ="0000000000000001") report "Fail 0+0" severity error;
+    
+    idle_in <= '0';
+    f1_no_Fn_in <= '0';
+    f2_no_Fn_in <= '1';
+    enable_soma_in <= '0';
+    
+    wait for 2 ns;
+    
+    assert(Fn_out ="0000000000000010") report "Fail 0+0" severity error;
+    
+    idle_in <= '0';
+    f1_no_Fn_in <= '0';
+    f2_no_Fn_in <= '0';
+    enable_soma_in <= '1';
+    
+    wait for 2 ns;
+    
+    assert(Fn_out ="0000000000000011") report "Fail 0+0" severity error;
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     --wait for 2 ns; -- espera estabilizar e verifica saída
     --assert(Fn_out ="0000000000000000") report "Fail 0+0" severity error;
