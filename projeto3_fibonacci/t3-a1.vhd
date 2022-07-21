@@ -279,7 +279,7 @@ architecture fibFD_arch of fibFD is
     signal contar: bit;
     
 begin
-    contar <= enable_soma or f1_no_Fn or f1_no_Fn;
+    contar <= enable_soma or f1_no_Fn or f2_no_Fn;
 
     contador: counter8 port map(clock, idle, n, contar, out_contador);
 
@@ -303,6 +303,8 @@ begin
     somador: somador_16 port map(out_f1, out_f2, out_somador, overflow);
 
 end fibFD_arch;
+
+
 
 
 
