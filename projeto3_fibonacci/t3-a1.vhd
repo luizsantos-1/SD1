@@ -283,11 +283,11 @@ begin
 
     contador: counter8 port map(clock, idle, n, contar, out_contador);
 
-    in_f1 <= F1 when (idle = '1') else
-             out_somador;
+    in_f2 <= out_somador when (enable_soma = '1') else
+             F2;
 
-    in_f2 <= F2 when (idle = '1') else
-             out_f1;
+    in_f1 <= out_F2 when (enable_soma = '1') else
+             F1;
 
     Fn <= F1 when (f1_no_Fn  = '1') else
           F2 when (f2_no_Fn  = '1') else
@@ -303,6 +303,8 @@ begin
     somador: somador_16 port map(out_f1, out_f2, out_somador, overflow);
 
 end fibFD_arch;
+
+
 
 
 
