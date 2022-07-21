@@ -1,5 +1,3 @@
--- Code your testbench here
-
 entity testbench is
 -- empty
 end testbench; 
@@ -7,48 +5,66 @@ end testbench;
 architecture tb of testbench is
 
 -- DUT component
-component somador_16 is port(
-  	entrada1, entrada2: in bit_vector(15 downto 0); 
-	saida: out bit_vector(15 downto 0);
-	overflow: out bit); 
-	
+component counter8 is
+  port (
+    clock: 	in bit;
+	  set: 	in bit;		-- set síncrono
+    set_value: in bit_vector (7 downto 0);
+	  count: 	in bit;		-- habilita contagem
+	  cval: 	out bit_vector(7 downto 0)
+    );
 end component;
 
-signal e1, e2 , s: bit_vector(15 downto 0);
-signal o : bit;
+signal set_in, count_in: bit;
+signal set_value_in, cval_out: bit_vector(7 downto 0);
 
+
+-- Criando o clock
+constant clockPeriod : time := 2 ns; -- clock period
+signal keep_simulating: bit := '0'; -- interrompe simulação 
+signal clk_in: bit; -- se construção alternativa do clock
 
 begin
-	
+	clk_in <= (not clk_in) and keep_simulating after clockPeriod/2;
+    
 
   -- Connect DUT
-	DUT: somador_16 port map(e1,e2,s,o);
+	DUT: counter8 port map(clk_in, set_in, set_value_in, count_in, cval_out);
 
   process
   begin
   
   	assert false report "Test start." severity note;
+    keep_simulating <= '1';
     
-    e1 <= "0000000000000000";
-    e2 <= "1111111111111111";
+    --wait for 2 ns;
     
-    wait for 6 ns;
-    assert(s ="1111111111111111") report "Fail 0+0" severity error;
+	set_in <= '1';
+    set_value_in <= "11111111";
+    count_in  <= '0';
     
-    e1 <= "1010101010101010";
-    e2 <= "0000001111111111";
+    wait for 2 ns; -- espera estabilizar e verifica saída
+    set_in <= '0';
     
-    wait for 6 ns;
-    assert(s ="1010111010101001") report "Fail 0+0" severity error;
+    
+    assert(cval_out ="11111111") report "Fail 0+0" severity error;
 
-
+	count_in <= '1';
+    wait for 2 ns; -- espera estabilizar e verifica saída
+    assert(cval_out ="11111110") report "Fail 0+0" severity error;
     
-    wait for 6 ns; -- espera estabilizar e verifica saída
-    assert(false) report "Test done" severity note;
-    wait;
+    wait for 2 ns; -- espera estabilizar e verifica saída
+    assert(cval_out ="11111101") report "Fail 0+0" severity error;
+    
+    
+    -- Limpa entradas (opcional)
+    
 
+    -- Informa fim do teste
+    assert false report "Test done." severity note;
+    keep_simulating <= '0';
+    wait; -- Interrompe execução
+ 
   end process;
 end tb;
-    
-   
-    -- Informa fim do teste
+
