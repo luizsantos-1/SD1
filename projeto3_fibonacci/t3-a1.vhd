@@ -134,64 +134,14 @@ begin
   
 end architecture;
 
-entity fib is port(
-	reset, clock, inicio: in bit;
-	F1, F2, n: in bit_vector(7 downto 0); 
-	Fn: out bit_vector(15 downto 0);
-	fim, overflow: out bit); 
-end fib;
-
-architecture fib_arch of fib is 
-
-  component fibUC is port (                   
-    overflow, done: in bit; -- recebe do fluxo de dados
-    clock, reset, inicio: in bit; --recebe do exterior
-    idle, f1_no_Fn, f2_no_Fn, enable_soma: out bit; -- manda pro FD
-    fim: out bit -- manda para o exterior
-    );
-  end component;
-    
-  component fibFD is port(
-    clock: in bit; -- recebe do exterior
-    n: in bit_vector (7 downto 0); -- recebe do exterior
-    F1, F2: in bit_vector(15 downto 0); -- recebe do exterior
-    idle, f1_no_Fn, f2_no_Fn, enable_soma: in bit;--recebe da UC
-    Fn: out bit_vector(15 downto 0); -- manda para o exterior
-    overflow: out bit; -- manda para a UC e para o exterior
-    done: out bit -- manda para UC
-    );
-  end component;
-
-  signal done_t: bit;-- UC recebe do FD
-  signal overflow_t: bit; --sinal intermediario que sai da FD e é mandado para UC e pro exterior
-  signal idle_t, f1_no_Fn_t, f2_no_Fn_t, enable_soma_t: bit; -- FD recece da UC 
-
-  signal F1_G, F2_G: bit_vector(15 downto 0);
-
-  begin 
-
-  UnidadeDeControle: fibUC port map(overflow_t, done_t, clock, reset, inicio, idle_t, 
-                                    f1_no_Fn_t, f2_no_Fn_t, enable_soma_t, fim);
-
-  F1_G(15 downto 8) <= "00000000";
-  F1_G(7 downto 0) <=  F1; 
-
-  F2_G(15 downto 8) <= "00000000";
-  F2_G(7 downto 0) <=  F2; 
-
-  FluxoDeDados: fibFD port map (clock, n, F1_G, F2_G, idle_t, f1_no_Fn_t, f2_no_Fn_t,
-                                enable_soma_t, Fn, overflow_t, done_t);
-    
-  overflow <= overflow_t;
-
-end fib_arch;
-
+-- UNIDADE DE CONTROLE
 library IEEE;
 use IEEE.numeric_bit.all;
 
 entity fibUC is port (                   
     overflow, done: in bit; -- recebe do fluxo de dados
     clock, reset, inicio: in bit; --recebe do exterior
+    n: in bit_vector(7 downto 0); -- recebe do exterior
     idle, f1_no_Fn, f2_no_Fn, enable_soma: out bit; -- manda pro FD
     fim: out bit -- manda para o exterior
   );
@@ -214,24 +164,26 @@ begin
 
   -- Lógica de próximo estado
   next_state <=
-    idle_s  when (reset = '1') or (current_state = idle_s and inicio = '0') else
-	  exibirf1_s when (current_state = idle_s) and (inicio = '1') else
-	  exibirf2_s when (current_state = exibirf1_s) else
-	  somar_s when (current_state = exibirf2_s) or  (current_state = somar_s and (overflow = '0' and done = '0')) else
-	  fim_s;
+    	idle_s when (reset = '1') or (current_state = idle_s and (inicio = '0' or n = "00000000")) or (current_state = fim_s) else
+    	fim_s when (overflow = '1' or done  = '1') else
+	  	exibirf1_s when (current_state = idle_s) and (inicio = '1') else
+	  	exibirf2_s when (current_state = exibirf1_s) else
+	  	somar_s when (current_state = exibirf2_s) or  (current_state = somar_s and (overflow = '0' and done = '0'));
 	  
   -- Decodifica o estado para gerar sinais de controle
   idle <= '1' when current_state = idle_s else '0';
   f1_no_Fn <= '1' when current_state = exibirf1_s else '0';
   f2_no_Fn <= '1' when current_state = exibirf2_s else '0';
   enable_soma <= '1' when current_state = somar_s else '0';
-
+  
 
   -- Decodifica o estado para gerar as saídas da UC
   fim <= '1' when current_state = fim_s else '0';
 
 
 end fibUC_arch;
+
+-- FLUXO DE DADOS
 
 entity fibFD is port(
     clock: in bit; -- recebe do exterior
@@ -278,31 +230,110 @@ architecture fibFD_arch of fibFD is
     
     signal contar: bit;
     
+    signal in_reg_saida: bit_vector(15 downto 0);
+    
+    signal atualizar: bit;
+
+  
+    
 begin
+	atualizar <= f1_no_Fn or f2_no_Fn or enable_soma;
+    
     contar <= enable_soma or f1_no_Fn or f2_no_Fn;
 
     contador: counter8 port map(clock, idle, n, contar, out_contador);
 
-    in_f2 <= out_somador when (enable_soma = '1') else
-             F2;
+    in_f2 <= 	out_somador when (enable_soma = '1') else
+             	F2;
 
-    in_f1 <= out_F2 when (enable_soma = '1') else
-             F1;
+    in_f1 <= 	out_F2 when (enable_soma = '1') else
+             	F1;
 
-    Fn <= F1 when (f1_no_Fn  = '1') else
-          F2 when (f2_no_Fn  = '1') else
-          out_somador when (enable_soma = '1');
-
-    done <= '1' when (out_contador  = "00000001") else
-            '0';
+    in_reg_saida <= F1 when (f1_no_Fn = '1') else
+    				F2 when (f2_no_Fn = '1') else  
+                    out_somador when (enable_soma = '1');
 
     
-    reg1: registrador port map ('0', clock, '1', in_f1, out_f1);
-    reg2: registrador port map ('0', clock, '1', in_f2 , out_f2);
+    regsoma1: registrador port map ('0', clock, '1', in_f1, out_f1);
+    regsoma2: registrador port map ('0', clock, '1', in_f2 , out_f2);
+    
+    regsaida: registrador port map ('0', clock, atualizar, in_reg_saida , Fn);
 
     somador: somador_16 port map(out_f1, out_f2, out_somador, overflow);
+    
+    done <= '1' when (out_contador  = "00000000") else
+            '0';
 
 end fibFD_arch;
+
+
+--ENTIDADE FINAL
+entity fib is port(
+	reset, clock, inicio: in bit;
+	F1, F2, n: in bit_vector(7 downto 0); 
+	Fn: out bit_vector(15 downto 0);
+	fim, overflow: out bit); 
+end fib;
+
+architecture fib_arch of fib is 
+
+  component fibUC is port (                   
+    overflow, done: in bit; -- recebe do fluxo de dados
+    clock, reset, inicio: in bit; --recebe do exterior
+    n: in bit_vector(7 downto 0); --recebe do exterior
+    idle, f1_no_Fn, f2_no_Fn, enable_soma: out bit; -- manda pro FD
+    fim: out bit -- manda para o exterior
+    );
+  end component;
+    
+  component fibFD is port(
+    clock: in bit; -- recebe do exterior
+    n: in bit_vector (7 downto 0); -- recebe do exterior
+    F1, F2: in bit_vector(15 downto 0); -- recebe do exterior
+    idle, f1_no_Fn, f2_no_Fn, enable_soma: in bit;--recebe da UC
+    Fn: out bit_vector(15 downto 0); -- manda para o exterior
+    overflow: out bit; -- manda para a UC e para o exterior
+    done: out bit -- manda para UC
+    );
+  end component;
+
+  signal done_t: bit;-- UC recebe do FD
+  signal overflow_t: bit; --sinal intermediario que sai da FD e é mandado para UC e pro exterior
+  signal idle_t, f1_no_Fn_t, f2_no_Fn_t, enable_soma_t: bit; -- FD recece da UC 
+  
+  signal clock_negado: bit;
+
+  signal F1_G, F2_G: bit_vector(15 downto 0);
+
+  begin 
+  
+  clock_negado <= not clock;
+
+  UnidadeDeControle: fibUC port map(overflow_t, done_t, clock, reset, inicio, n, idle_t, 
+                                    f1_no_Fn_t, f2_no_Fn_t, enable_soma_t, fim);
+
+  F1_G(15 downto 8) <= "00000000";
+  F1_G(7 downto 0) <=  F1; 
+
+  F2_G(15 downto 8) <= "00000000";
+  F2_G(7 downto 0) <=  F2; 
+
+  FluxoDeDados: fibFD port map (clock_negado, n, F1_G, F2_G, idle_t, f1_no_Fn_t, f2_no_Fn_t,
+                                enable_soma_t, Fn, overflow_t, done_t);
+    
+  overflow <= overflow_t;
+
+end fib_arch;
+
+
+
+
+
+
+
+
+
+
 
 
 
