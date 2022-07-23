@@ -325,26 +325,3 @@ architecture fib_arch of fib is
 
 end fib_arch;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
