@@ -42,20 +42,27 @@ fibo: fib port map (reset_in, clk_in, inicio_in, F1_in, F2_in, n_in,Fn_out, fim_
   	assert false report "Test start." severity note;
     keep_simulating <= '1';
     
-    --wait for 2 ns;
-   	
+  	
     reset_in <= '1';
     inicio_in <= '0';
-    n_in <= "00000100";
-    F1_in <= "00000001";
-    F2_in <= "00000010";
+    n_in <= "11111111";
+    F1_in <= "11111111";
+    F2_in <= "00011111";
     
-    wait for 4 ns; -- espera estabilizar e verifica saída 
+    wait for 4 ns;  
     
     reset_in <= '0';
     inicio_in <= '1';
     wait for 2 ns;
     inicio_in <= '0'; 
+    
+    wait for 40 ns;
+    
+    reset_in <= '1';
+    wait for 4 ns;
+    
+    inicio_in <= '1';
+    reset_in <= '0';
     
     wait for 10 ns;
   
@@ -67,4 +74,6 @@ fibo: fib port map (reset_in, clk_in, inicio_in, F1_in, F2_in, n_in,Fn_out, fim_
  
   end process;
 end tb;
+
+
 
